@@ -50,10 +50,10 @@ class WebViewActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         isCreateNew = intent.getBooleanExtra(CLEAR_BROWSER_CACHE, false)
-        webViewUrl = intent.getStringExtra(URL_KEY) ?: "https://demo.readyplayer.me/avatar"
+        webViewUrl = intent.getStringExtra(URL_KEY) ?: "https://avatars.streamoji.com?iframe=true"
         binding = ActivityWebViewBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.hide()
         setUpWebView(intent.getBooleanExtra(CLEAR_BROWSER_CACHE, false))
         setUpWebViewClient()
     }
@@ -178,14 +178,14 @@ class WebViewActivity : AppCompatActivity() {
                     const json = parse(event);
                     const source = json.source;
                     
-                    if (source !== 'readyplayerme') {
+                    if (source !== 'streamojiavatars') {
                       return;
                     }
                     
                     if (json.eventName === 'v1.frame.ready' && !hasSentPostMessage) {
                         window.postMessage(
                             JSON.stringify({
-                                target: 'readyplayerme',
+                                target: 'streamojiavatars',
                                 type: 'subscribe',
                                 eventName: 'v1.**'
                             }),
@@ -242,10 +242,9 @@ class WebViewActivity : AppCompatActivity() {
                 var assetRecord = WebViewInterface.AssetRecord(userId, assetId)
                 callback?.onAssetUnlock(assetRecord)
             }
-            WebViewInterface.WebViewEvents.AVATAR_EXPORT -> {
+            "v1.avatar.exported" -> {
                 val avatarUrl = requireNotNull(webMessage.data["url"]) {
-                    "RPM: 'url' cannot be null in webMessage.data"
-                    finishActivityWithFailure("RPM: avatar 'url' property not found in event data")
+                    "Avatar URL missing"
                 }
                 callback?.onAvatarExported(avatarUrl)
                 finishActivityWithResult()

@@ -24,14 +24,14 @@ class UrlBuilder(
     }
 
     fun buildUrl(): String {
-        val baseUrl = "https://${urlConfig.subdomain}.readyplayer.me/"
+        val baseUrl = "https://avatars.streamoji.com/createAvatar"
         val builder = StringBuilder(baseUrl)
 
         if (urlConfig.language != Language.DEFAULT) {
             builder.append("${urlConfig.language}/")
         }
 
-        builder.append("avatar?$FRAME_API_PARAM&$SOURCE_PARAM")
+        builder.append("?$FRAME_API_PARAM&source=streamojiavatars")
 
         if (urlConfig.clearCache) {
             builder.append("&$CLEAR_CACHE_PARAM")

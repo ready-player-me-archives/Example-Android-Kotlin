@@ -84,7 +84,7 @@ class MainActivity : AppCompatActivity(), WebViewActivity.WebViewCallback {
 
     private fun showAlert(url: String){
         val context = this@MainActivity
-        val clipboardData = ClipData.newPlainText("Ready Player Me", url)
+        val clipboardData = ClipData.newPlainText("Streamoji avatars", url)
         val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboardManager.setPrimaryClip(clipboardData)
         Toast.makeText(context, "Url copied into clipboard.", Toast.LENGTH_SHORT).show()
