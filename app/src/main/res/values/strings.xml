@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Ready Player Me</string>
     <string name="create_your_avatar_label">Create Your Avatar</string>
-    <string name="update_avatar_label">Update Avatar</string>
+
     <string name="partner_subdomain">demo</string>
     <string name="avatar">Avatar</string>
     <string name="menu">Menu</string>

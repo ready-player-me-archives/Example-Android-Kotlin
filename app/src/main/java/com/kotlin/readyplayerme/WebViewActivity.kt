@@ -22,11 +22,15 @@ import com.kotlin.readyplayerme.WebViewInterface.WebMessage
 class WebViewActivity : AppCompatActivity() {
     interface WebViewCallback {
         fun onAvatarExported(avatarUrl: String)
+
+        /*
+        // Streamoji does not currently support these RPM-specific events
         fun onOnUserSet(userId: String)
         fun onOnUserUpdated(userId: String)
         fun onOnUserAuthorized(userId: String)
         fun onAssetUnlock(assetRecord: WebViewInterface.AssetRecord)
         fun onUserLogout()
+        */
     }
 
     companion object {
@@ -43,41 +47,43 @@ class WebViewActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityWebViewBinding
     private var isCreateNew = false
-    
+
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
     private var webViewUrl: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         isCreateNew = intent.getBooleanExtra(CLEAR_BROWSER_CACHE, false)
-        webViewUrl = intent.getStringExtra(URL_KEY) ?: "https://demo.readyplayer.me/avatar"
+        // Default pointed to Streamoji
+        webViewUrl = intent.getStringExtra(URL_KEY) ?: "https://avatars.streamoji.com?iframe=true"
         binding = ActivityWebViewBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.hide()
         setUpWebView(intent.getBooleanExtra(CLEAR_BROWSER_CACHE, false))
         setUpWebViewClient()
     }
 
     @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
     private fun setUpWebView(clearBrowserCache: Boolean) {
-        Log.d("RPM", "onCreate: clearBrowserCache $clearBrowserCache")
+        Log.d("Streamoji", "onCreate: clearBrowserCache $clearBrowserCache")
         with(binding.webview.settings){
             javaScriptEnabled = true
             cacheMode = WebSettings.LOAD_DEFAULT
             databaseEnabled = true
             domStorageEnabled = true
             allowFileAccess = true
-
         }
 
         with(binding.webview){
+            // Bridge named "WebView" to match the injected JS call
             addJavascriptInterface(WebViewInterface(this@WebViewActivity){ webMessage ->
                 handleWebMessage(webMessage)
             }, "WebView")
+
             if (clearBrowserCache){
                 clearWebViewData()
             }
-            Log.d("RPM","setUpWebView url = $webViewUrl")
+            Log.d("Streamoji","setUpWebView url = $webViewUrl")
             loadUrl(webViewUrl)
         }
     }
@@ -94,9 +100,6 @@ class WebViewActivity : AppCompatActivity() {
                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                     super.onPageStarted(view, url, favicon)
                     executeJavascript()
-                    if (
-                        CookieManager.getInstance().hasCookies()
-                    ) CookieHelper(this@WebViewActivity).setUpdateState(true)
                 }
             }
 
@@ -128,7 +131,6 @@ class WebViewActivity : AppCompatActivity() {
                 override fun onPermissionRequest(request: PermissionRequest?) {
                     Log.d("PERMISSION", "onPermissionRequest: ${request?.resources} ")
                     request?.grant(arrayOf(Manifest.permission.CAMERA))
-
                 }
             }
         }
@@ -136,7 +138,6 @@ class WebViewActivity : AppCompatActivity() {
 
     private val openCameraResultContract  = registerForActivityResult(ActivityResultContracts.TakePicturePreview()){
         it?.let {
-            Log.d("ON RESULT", "no data bitmap: $it")
             val path = MediaStore.Images.Media.insertImage(contentResolver, it, "fromCamera.jpeg", "")
             filePathCallback?.onReceiveValue(arrayOf(Uri.parse(path)))
         } ?: Toast.makeText(this, "No Image captured !!", Toast.LENGTH_SHORT).show()
@@ -158,7 +159,6 @@ class WebViewActivity : AppCompatActivity() {
         } else {
             openCameraResultContract.launch(null)
         }
-
     }
 
     private fun hasPermissionAccess(): Boolean{
@@ -176,16 +176,15 @@ class WebViewActivity : AppCompatActivity() {
                 var hasSentPostMessage = false;
                 function subscribe(event) {
                     const json = parse(event);
-                    const source = json.source;
+                    if (!json) return;
                     
-                    if (source !== 'readyplayerme') {
-                      return;
-                    }
+                    const source = json.source;
+                    if (source !== 'streamojiavatars') return;
                     
                     if (json.eventName === 'v1.frame.ready' && !hasSentPostMessage) {
                         window.postMessage(
                             JSON.stringify({
-                                target: 'readyplayerme',
+                                target: 'streamojiavatars',
                                 type: 'subscribe',
                                 eventName: 'v1.**'
                             }),
@@ -212,53 +211,56 @@ class WebViewActivity : AppCompatActivity() {
     }
 
     private fun handleWebMessage(webMessage: WebMessage) {
+        Log.d("Streamoji", "Event received: ${webMessage.eventName}")
 
         when (webMessage.eventName) {
-            WebViewInterface.WebViewEvents.USER_SET -> {
-                val userId = requireNotNull(webMessage.data[ID_KEY]) {
-                    "RPM: 'userId' cannot be null"
+            // Streamoji Events
+            WebViewInterface.WebViewEvents.FRAME_READY -> {
+                Log.d("Streamoji", "Creator Frame is ready.")
+            }
+
+            WebViewInterface.WebViewEvents.AVATAR_EXPORT -> {
+                val avatarUrl = webMessage.data?.get("url")
+                    ?: webMessage.data?.get("avatarUrl") // Handle both naming possibilities
+                val responseUserId = webMessage.data?.get("userid") ?: webMessage.data?.get("userId")
+
+                if (avatarUrl != null) {
+                    Log.d("Streamoji", "Avatar Exported: $avatarUrl for User ID: $responseUserId")
+                    callback?.onAvatarExported(avatarUrl)
+                    finishActivityWithResult()
+                } else {
+                    Log.e("Streamoji", "Exported event received but URL is missing.")
                 }
-                callback?.onOnUserSet(userId)
+            }
+
+            /*
+            // Commented out RPM legacy events
+            WebViewInterface.WebViewEvents.USER_SET -> {
+                val userId = webMessage.data?.get(ID_KEY) ?: ""
+                // callback?.onOnUserSet(userId)
             }
             WebViewInterface.WebViewEvents.USER_UPDATED -> {
-                val userId = requireNotNull(webMessage.data[ID_KEY]) {
-                    "RPM: 'userId' cannot be null webMessage.data"
-                }
-                callback?.onOnUserUpdated(userId)
+                val userId = webMessage.data?.get(ID_KEY) ?: ""
+                // callback?.onOnUserUpdated(userId)
             }
             WebViewInterface.WebViewEvents.USER_AUTHORIZED -> {
-                val userId = requireNotNull(webMessage.data[ID_KEY]) {
-                    "RPM: 'userId' cannot be null webMessage.data"
-                }
-                callback?.onOnUserAuthorized(userId)
+                val userId = webMessage.data?.get(ID_KEY) ?: ""
+                // callback?.onOnUserAuthorized(userId)
             }
             WebViewInterface.WebViewEvents.ASSET_UNLOCK -> {
-                val userId = requireNotNull(webMessage.data[ID_KEY]) {
-                    "RPM: 'id' cannot be null webMessage.data"
-                }
-                val assetId = requireNotNull(webMessage.data[ASSET_ID_KEY]) {
-                    "RPM: 'assetId' cannot be null webMessage.data"
-                }
-                var assetRecord = WebViewInterface.AssetRecord(userId, assetId)
-                callback?.onAssetUnlock(assetRecord)
-            }
-            WebViewInterface.WebViewEvents.AVATAR_EXPORT -> {
-                val avatarUrl = requireNotNull(webMessage.data["url"]) {
-                    "RPM: 'url' cannot be null in webMessage.data"
-                    finishActivityWithFailure("RPM: avatar 'url' property not found in event data")
-                }
-                callback?.onAvatarExported(avatarUrl)
-                finishActivityWithResult()
+                // val userId = webMessage.data?.get(ID_KEY) ?: ""
+                // val assetId = webMessage.data?.get(ASSET_ID_KEY) ?: ""
+                // callback?.onAssetUnlock(WebViewInterface.AssetRecord(userId, assetId))
             }
             WebViewInterface.WebViewEvents.USER_LOGOUT -> {
-                callback?.onUserLogout()
+                // callback?.onUserLogout()
             }
+            */
         }
     }
 
     private fun finishActivityWithResult() {
         val resultString = "Avatar Created Successfully"
-
         val data = Intent()
         data.putExtra("result_key", resultString)
         setResult(Activity.RESULT_OK, data)

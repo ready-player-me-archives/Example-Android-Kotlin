@@ -14,6 +14,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import com.kotlin.readyplayerme.databinding.ActivityMainBinding
 
+// --- IMPORTANT OKHTTP IMPORTS ---
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import java.io.IOException
+
 class MainActivity : AppCompatActivity(), WebViewActivity.WebViewCallback {
     private lateinit var binding: ActivityMainBinding
     private var urlConfig: UrlConfig = UrlConfig()
@@ -22,18 +29,97 @@ class MainActivity : AppCompatActivity(), WebViewActivity.WebViewCallback {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
         WebViewActivity.setWebViewCallback(this)
-        if (CookieHelper(this).getUpdateState()){
-            binding.updateButton.visibility = View.VISIBLE
-        }
 
+
+
+        // --- THE UPDATED CREATE BUTTON ---
         binding.createButton.setOnClickListener {
-            openWebViewPage(false)
+            val myClientId = binding.clientIdInput.text.toString().trim()
+            val myClientSecret = binding.clientSecretInput.text.toString().trim()
+            val myUserName = binding.userNameInput.text.toString().trim()
+            var myUserId = binding.userIdInput.text.toString().trim()
+
+            if (myClientId.isEmpty() || myClientSecret.isEmpty() || myUserName.isEmpty() || myUserId.isEmpty()) {
+                Toast.makeText(this, "Please fill in all fields (including User ID)", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            // If you still want a fallback but allow override:
+            // if (myUserId.isEmpty()) {
+            //    myUserId = "user_${myUserName.lowercase().replace(" ", "_")}"
+            // }
+
+            // Switch to a loading message so the user knows it's working
+            Toast.makeText(this, "Logging in...", Toast.LENGTH_SHORT).show()
+
+            fetchStreamojiToken(myClientId, myClientSecret, myUserId, myUserName,
+                onSuccess = { token ->
+                    runOnUiThread {
+                        // Put the token into our config and launch!
+                        urlConfig.loginToken = token
+                        urlConfig.clientId = myClientId
+                        urlConfig.userName = myUserName
+                        urlConfig.userId = myUserId
+
+                        openWebViewPage(false)
+                    }
+                },
+                onError = { error ->
+                    runOnUiThread {
+                        Toast.makeText(this, "Login Failed: $error", Toast.LENGTH_LONG).show()
+                    }
+                }
+            )
         }
 
-        binding.updateButton.setOnClickListener{
-            openWebViewPage(true)
-        }
+
+    }
+
+    // --- THE FUNCTION THAT EXCHANGES YOUR CREDENTIALS FOR A TOKEN ---
+    private fun fetchStreamojiToken(
+        clientId: String,
+        clientSecret: String,
+        userId: String,
+        userName: String,
+        onSuccess: (String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val client = OkHttpClient()
+        val mediaType = "application/json; charset=utf-8".toMediaType()
+
+        val jsonBody = JSONObject().apply {
+            put("userId", userId)
+            put("userName", userName)
+            put("expiresIn", 1800)
+        }.toString()
+
+        val request = Request.Builder()
+            .url("https://us-central1-streamoji-265f4.cloudfunctions.net/getAuthToken")
+            .addHeader("Client-Id", clientId)
+            .addHeader("Client-Secret", clientSecret)
+            .post(jsonBody.toRequestBody(mediaType))
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                onError(e.message ?: "Network Error")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                // Using .body() instead of .body to solve the access error
+                val responseBody = response.body?.string()
+                val json = JSONObject(responseBody ?: "{}")
+
+                if (response.isSuccessful && json.getBoolean("success")) {
+                    val token = json.getString("authToken")
+                    onSuccess(token)
+                } else {
+                    onError(json.optString("error", "Invalid Credentials"))
+                }
+            }
+        })
     }
 
     private fun openAvatarView(avatarUrl: String){
@@ -51,45 +137,24 @@ class MainActivity : AppCompatActivity(), WebViewActivity.WebViewCallback {
 
     private val webViewActivityResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            Log.d("RPM", "Result activity run.")
+            Log.d("Streamoji", "WebView Session Finished")
         }
     }
 
     override fun onAvatarExported(avatarUrl: String) {
-        Log.d("RPM", "Avatar Exported - Avatar URL: $avatarUrl")
-
+        Log.d("Streamoji", "Avatar Exported: $avatarUrl")
+        // If it's a GLB, show a preview PNG
         val avatarImg = avatarUrl.replace(".glb", ".png")
         openAvatarView(avatarImg);
     }
 
-    override fun onOnUserSet(userId: String) {
-        Log.d("RPM", "User Set - User ID: $userId")
-    }
-
-    override fun onOnUserUpdated(userId: String) {
-        Log.d("RPM", "User Updated - User ID: $userId")
-    }
-
-    override fun onOnUserAuthorized(userId: String) {
-        Log.d("RPM", "User Authorized - User ID: $userId")
-    }
-
-    override fun onAssetUnlock(assetRecord: WebViewInterface.AssetRecord) {
-        Log.d("RPM", "Asset Unlock - Asset Record: $assetRecord")
-    }
-
-    override fun onUserLogout() {
-        Log.d("RPM", "User Logout")
-    }
-
     private fun showAlert(url: String){
         val context = this@MainActivity
-        val clipboardData = ClipData.newPlainText("Ready Player Me", url)
+        val clipboardData = ClipData.newPlainText("Streamoji avatars", url)
         val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboardManager.setPrimaryClip(clipboardData)
         Toast.makeText(context, "Url copied into clipboard.", Toast.LENGTH_SHORT).show()
 
-        // display modal window with the avatar url
         val builder = AlertDialog.Builder(context).apply {
             setTitle("Result")
             setMessage(url)

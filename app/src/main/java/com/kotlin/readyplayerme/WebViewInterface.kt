@@ -12,24 +12,25 @@ class WebViewInterface(private val context: Context, private val callback: (WebM
 
     data class WebMessage(
         val type: String = "",
-        val source: String = "readyplayerme",
+        val source: String = "streamojiavatars",
         val eventName: String = "event",
-        val data: Map<String, String>
+        val data: Map<String, String>?=null
     )
 
     object WebViewEvents {
+        const val FRAME_READY="v1.frame.ready"
         const val AVATAR_EXPORT = "v1.avatar.exported"
-        const val USER_SET = "v1.user.set"
+       /* const val USER_SET = "v1.user.set"
         const val USER_UPDATED = "v1.user.updated"
         const val USER_AUTHORIZED = "v1.user.authorized"
         const val ASSET_UNLOCK = "v1.asset.unlock"
-        const val USER_LOGOUT = "v1.user.logout"
+        const val USER_LOGOUT = "v1.user.logout"*/
     }
 
-    data class AssetRecord(
+  /*  data class AssetRecord(
         val userId: String,
         val assetId: String
-    )
+    )*/
 
     @JavascriptInterface
     fun receiveData(json: String){
