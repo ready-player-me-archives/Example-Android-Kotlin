@@ -55,11 +55,15 @@ class MainActivity : AppCompatActivity(), WebViewActivity.WebViewCallback {
         }
     }
 
-    override fun onAvatarExported(avatarUrl: String) {
-        Log.d("RPM", "Avatar Exported - Avatar URL: $avatarUrl")
-
-        val avatarImg = avatarUrl.replace(".glb", ".png")
-        openAvatarView(avatarImg);
+    override fun onAvatarExported(avatarUrl: String, thumbnailUrl: String?) {
+        Log.d("Streamoji", "Avatar Exported: $avatarUrl")
+        Log.d("Streamoji", "Thumbnail URL: $thumbnailUrl")
+        
+        // Show the thumbnail URL to the user as requested
+        runOnUiThread {
+            val displayUrl = thumbnailUrl ?: avatarUrl
+            showAlert("Thumbnail URL: $displayUrl")
+        }
     }
 
     override fun onOnUserSet(userId: String) {

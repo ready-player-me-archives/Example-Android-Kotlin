@@ -21,7 +21,10 @@ import com.kotlin.readyplayerme.WebViewInterface.WebMessage
 
 class WebViewActivity : AppCompatActivity() {
     interface WebViewCallback {
-        fun onAvatarExported(avatarUrl: String)
+        fun onAvatarExported(avatarUrl: String, thumbnailUrl: String?)
+
+        /*
+        // Streamoji does not currently support these RPM-specific events
         fun onOnUserSet(userId: String)
         fun onOnUserUpdated(userId: String)
         fun onOnUserAuthorized(userId: String)
@@ -214,6 +217,32 @@ class WebViewActivity : AppCompatActivity() {
     private fun handleWebMessage(webMessage: WebMessage) {
 
         when (webMessage.eventName) {
+<<<<<<< Updated upstream
+=======
+            // Streamoji Events
+            WebViewInterface.WebViewEvents.FRAME_READY -> {
+                Log.d("Streamoji", "Creator Frame is ready.")
+            }
+
+            WebViewInterface.WebViewEvents.AVATAR_EXPORT -> {
+                val avatarUrl = webMessage.data?.get("url")
+                    ?: webMessage.data?.get("avatarUrl") // Handle both naming possibilities
+                val thumbnailUrl = webMessage.data?.get("thumbnailUrl")
+                    ?: webMessage.data?.get("thumbnail") // Handle common naming possibilities
+                val responseUserId = webMessage.data?.get("userid") ?: webMessage.data?.get("userId")
+
+                if (avatarUrl != null) {
+                    Log.d("Streamoji", "Avatar Exported: $avatarUrl, Thumbnail: $thumbnailUrl for User ID: $responseUserId")
+                    callback?.onAvatarExported(avatarUrl, thumbnailUrl)
+                    finishActivityWithResult()
+                } else {
+                    Log.e("Streamoji", "Exported event received but URL is missing.")
+                }
+            }
+
+            /*
+            // Commented out RPM legacy events
+>>>>>>> Stashed changes
             WebViewInterface.WebViewEvents.USER_SET -> {
                 val userId = requireNotNull(webMessage.data[ID_KEY]) {
                     "RPM: 'userId' cannot be null"
