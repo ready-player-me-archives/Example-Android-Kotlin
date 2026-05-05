@@ -53,6 +53,7 @@ class UrlBuilder(
         // Add Query Parameters
         uriBuilder.appendQueryParameter(FRAME_API_PARAM, FRAME_API_VALUE)
         uriBuilder.appendQueryParameter(SOURCE_PARAM, SOURCE_VALUE)
+        uriBuilder.appendQueryParameter("thumbnail", "true")
 
         // 1. Authentication & Identity
         if (urlConfig.loginToken.isNotEmpty()) {

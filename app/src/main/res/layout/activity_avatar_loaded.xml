@@ -4,34 +4,41 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF"
+    android:background="@color/background"
     tools:context=".AvatarLoaded">
 
-    <ImageView
-        android:id="@+id/user_avatar"
-        android:layout_width="180dp"
-        android:layout_height="227dp"
-        android:layout_marginStart="115dp"
-        android:layout_marginTop="132dp"
-        android:layout_marginEnd="116dp"
-        android:contentDescription="@string/avatar"
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/responseCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        app:cardBackgroundColor="@color/surface"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="4dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@android:drawable/sym_def_app_icon" />
+        app:layout_constraintTop_toTopOf="parent">
 
-    <Button
-        android:id="@+id/menu"
-        android:layout_width="204dp"
-        android:layout_height="58dp"
-        android:layout_marginStart="103dp"
-        android:layout_marginTop="52dp"
-        android:layout_marginEnd="104dp"
-        android:text="@string/menu"
+        <TextView
+            android:id="@+id/responseText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="Response will appear here"
+            android:textColor="@color/white"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:textIsSelectable="true" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.ar.sceneform.SceneView
+        android:id="@+id/sceneView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/user_avatar" />
+        app:layout_constraintTop_toBottomOf="@+id/responseCard" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

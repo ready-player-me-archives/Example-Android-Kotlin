@@ -14,10 +14,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import com.kotlin.readyplayerme.databinding.ActivityMainBinding
 
-// --- IMPORTANT OKHTTP IMPORTS ---
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
+// OkHttp 4 properties and extensions are now used instead of Java-style methods
 import org.json.JSONObject
 import java.io.IOException
 
@@ -32,32 +32,22 @@ class MainActivity : AppCompatActivity(), WebViewActivity.WebViewCallback {
 
         WebViewActivity.setWebViewCallback(this)
 
-
-
-        // --- THE UPDATED CREATE BUTTON ---
         binding.createButton.setOnClickListener {
             val myClientId = binding.clientIdInput.text.toString().trim()
             val myClientSecret = binding.clientSecretInput.text.toString().trim()
             val myUserName = binding.userNameInput.text.toString().trim()
-            var myUserId = binding.userIdInput.text.toString().trim()
+            val myUserId = binding.userIdInput.text.toString().trim()
 
             if (myClientId.isEmpty() || myClientSecret.isEmpty() || myUserName.isEmpty() || myUserId.isEmpty()) {
-                Toast.makeText(this, "Please fill in all fields (including User ID)", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            // If you still want a fallback but allow override:
-            // if (myUserId.isEmpty()) {
-            //    myUserId = "user_${myUserName.lowercase().replace(" ", "_")}"
-            // }
-
-            // Switch to a loading message so the user knows it's working
             Toast.makeText(this, "Logging in...", Toast.LENGTH_SHORT).show()
 
             fetchStreamojiToken(myClientId, myClientSecret, myUserId, myUserName,
                 onSuccess = { token ->
                     runOnUiThread {
-                        // Put the token into our config and launch!
                         urlConfig.loginToken = token
                         urlConfig.clientId = myClientId
                         urlConfig.userName = myUserName
@@ -73,11 +63,8 @@ class MainActivity : AppCompatActivity(), WebViewActivity.WebViewCallback {
                 }
             )
         }
-
-
     }
 
-    // --- THE FUNCTION THAT EXCHANGES YOUR CREDENTIALS FOR A TOKEN ---
     private fun fetchStreamojiToken(
         clientId: String,
         clientSecret: String,
@@ -108,7 +95,6 @@ class MainActivity : AppCompatActivity(), WebViewActivity.WebViewCallback {
             }
 
             override fun onResponse(call: Call, response: Response) {
-                // Using .body() instead of .body to solve the access error
                 val responseBody = response.body?.string()
                 val json = JSONObject(responseBody ?: "{}")
 
@@ -122,9 +108,10 @@ class MainActivity : AppCompatActivity(), WebViewActivity.WebViewCallback {
         })
     }
 
-    private fun openAvatarView(avatarUrl: String){
+    private fun openAvatarView(avatarUrl: String, thumbnailUrl: String? = null){
         val intent = Intent(this, AvatarLoaded::class.java);
         intent.putExtra("user_avatar_url", avatarUrl);
+        intent.putExtra("user_thumbnail_url", thumbnailUrl);
         startActivity(intent);
     }
 
@@ -141,11 +128,11 @@ class MainActivity : AppCompatActivity(), WebViewActivity.WebViewCallback {
         }
     }
 
-    override fun onAvatarExported(avatarUrl: String) {
-        Log.d("Streamoji", "Avatar Exported: $avatarUrl")
-        // If it's a GLB, show a preview PNG
-        val avatarImg = avatarUrl.replace(".glb", ".png")
-        openAvatarView(avatarImg);
+    override fun onAvatarExported(avatarUrl: String, thumbnailUrl: String?) {
+        Log.d("RPM", "Avatar Exported - Avatar URL: $avatarUrl, Thumbnail: $thumbnailUrl")
+
+        // Pass the actual 3D model URL and thumbnail URL
+        openAvatarView(avatarUrl, thumbnailUrl);
     }
 
     private fun showAlert(url: String){

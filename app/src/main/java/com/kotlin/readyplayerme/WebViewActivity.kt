@@ -21,16 +21,8 @@ import com.kotlin.readyplayerme.WebViewInterface.WebMessage
 
 class WebViewActivity : AppCompatActivity() {
     interface WebViewCallback {
-        fun onAvatarExported(avatarUrl: String)
+        fun onAvatarExported(avatarUrl: String, thumbnailUrl: String?)
 
-        /*
-        // Streamoji does not currently support these RPM-specific events
-        fun onOnUserSet(userId: String)
-        fun onOnUserUpdated(userId: String)
-        fun onOnUserAuthorized(userId: String)
-        fun onAssetUnlock(assetRecord: WebViewInterface.AssetRecord)
-        fun onUserLogout()
-        */
     }
 
     companion object {
@@ -222,40 +214,18 @@ class WebViewActivity : AppCompatActivity() {
             WebViewInterface.WebViewEvents.AVATAR_EXPORT -> {
                 val avatarUrl = webMessage.data?.get("url")
                     ?: webMessage.data?.get("avatarUrl") // Handle both naming possibilities
+                val thumbnailUrl = webMessage.data?.get("thumbnailUrl")
                 val responseUserId = webMessage.data?.get("userid") ?: webMessage.data?.get("userId")
 
                 if (avatarUrl != null) {
-                    Log.d("Streamoji", "Avatar Exported: $avatarUrl for User ID: $responseUserId")
-                    callback?.onAvatarExported(avatarUrl)
+                    Log.d("Streamoji", "Avatar Exported: $avatarUrl for User ID: $responseUserId, Thumbnail: $thumbnailUrl")
+                    callback?.onAvatarExported(avatarUrl, thumbnailUrl)
                     finishActivityWithResult()
                 } else {
                     Log.e("Streamoji", "Exported event received but URL is missing.")
                 }
             }
 
-            /*
-            // Commented out RPM legacy events
-            WebViewInterface.WebViewEvents.USER_SET -> {
-                val userId = webMessage.data?.get(ID_KEY) ?: ""
-                // callback?.onOnUserSet(userId)
-            }
-            WebViewInterface.WebViewEvents.USER_UPDATED -> {
-                val userId = webMessage.data?.get(ID_KEY) ?: ""
-                // callback?.onOnUserUpdated(userId)
-            }
-            WebViewInterface.WebViewEvents.USER_AUTHORIZED -> {
-                val userId = webMessage.data?.get(ID_KEY) ?: ""
-                // callback?.onOnUserAuthorized(userId)
-            }
-            WebViewInterface.WebViewEvents.ASSET_UNLOCK -> {
-                // val userId = webMessage.data?.get(ID_KEY) ?: ""
-                // val assetId = webMessage.data?.get(ASSET_ID_KEY) ?: ""
-                // callback?.onAssetUnlock(WebViewInterface.AssetRecord(userId, assetId))
-            }
-            WebViewInterface.WebViewEvents.USER_LOGOUT -> {
-                // callback?.onUserLogout()
-            }
-            */
         }
     }
 
